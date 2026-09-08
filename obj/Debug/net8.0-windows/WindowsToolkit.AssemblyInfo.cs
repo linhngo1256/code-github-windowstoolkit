@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WindowsToolkit")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+92233268f1729174b29197b26fad8af4a1366581")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+176ba62488b6d73b965f54493f11a508e10f256c")]
 [assembly: System.Reflection.AssemblyProductAttribute("WindowsToolkit")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WindowsToolkit")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
