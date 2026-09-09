@@ -17,7 +17,8 @@ public class Form1 : Form
 // VERSION
 // =====================================================
 
-    private const string CURRENT_VERSION = "2.4.0";
+
+    private const string CURRENT_VERSION = "2.5.0";
 
     // =====================================================
     // OTA UPDATE
@@ -54,6 +55,10 @@ public class Form1 : Form
 
     private TextBox searchBox;
 
+    private Button selectButton;
+    private Button deleteButton;
+    private Button cancelSelectButton;
+
     private Form aboutForm;
 
     // =====================================================
@@ -63,6 +68,8 @@ public class Form1 : Form
     private readonly string buildDate;
 
     private AppConfig config;
+
+    private bool selectionMode = false;
 
     private readonly Dictionary<string, CheckBox>
         selectedApplications =
@@ -114,6 +121,16 @@ public class Form1 : Form
 
         DragEnter += Form1_DragEnter;
         DragDrop += Form1_DragDrop;
+
+        Resize +=
+            delegate
+            {
+                BeginInvoke(
+                    new Action(
+                        UpdateApplicationLayout
+                    )
+                );
+            };
 
         mainMenu =
             new MenuStrip();
@@ -260,8 +277,7 @@ public class Form1 : Form
                 File.ReadAllText(file);
 
             AppConfig result =
-                JsonSerializer
-                .Deserialize<AppConfig>(
+                JsonSerializer.Deserialize<AppConfig>(
                     json
                 );
 
@@ -271,8 +287,7 @@ public class Form1 : Form
             }
 
             if (
-                result.FavoriteApplications ==
-                null
+                result.FavoriteApplications == null
             )
             {
                 result.FavoriteApplications =
@@ -346,19 +361,6 @@ public class Form1 : Form
         );
 
         menu.DropDownItems.Add(
-            "XÓA ỨNG DỤNG ĐÃ CHỌN",
-            null,
-            delegate
-            {
-                DeleteSelectedApplications();
-            }
-        );
-
-        menu.DropDownItems.Add(
-            new ToolStripSeparator()
-        );
-
-        menu.DropDownItems.Add(
             "MỞ THƯ MỤC ỨNG DỤNG",
             null,
             delegate
@@ -413,44 +415,65 @@ public class Form1 : Form
     // THEME
     // =====================================================
 
+    private Color BackgroundColor
+    {
+        get
+        {
+            return config.DarkMode
+                ? Color.FromArgb(32, 32, 32)
+                : Color.WhiteSmoke;
+        }
+    }
+
+    private Color CardColor
+    {
+        get
+        {
+            return config.DarkMode
+                ? Color.FromArgb(48, 48, 48)
+                : Color.White;
+        }
+    }
+
+    private Color TextColor
+    {
+        get
+        {
+            return config.DarkMode
+                ? Color.White
+                : Color.Black;
+        }
+    }
+
+    private Color BorderColor
+    {
+        get
+        {
+            return config.DarkMode
+                ? Color.FromArgb(80, 80, 80)
+                : Color.LightGray;
+        }
+    }
+
     private void ApplyTheme()
     {
-        if (config.DarkMode)
-        {
-            BackColor =
-                Color.FromArgb(
-                    32,
-                    32,
-                    32
-                );
+        BackColor =
+            BackgroundColor;
 
-            ForeColor =
-                Color.White;
+        ForeColor =
+            TextColor;
 
-            mainMenu.BackColor =
-                Color.FromArgb(
+        mainMenu.BackColor =
+            config.DarkMode
+                ? Color.FromArgb(
                     45,
                     45,
                     48
-                );
+                )
+                : Color.White;
 
-            mainMenu.ForeColor =
-                Color.White;
-        }
-        else
-        {
-            BackColor =
-                Color.WhiteSmoke;
-
-            ForeColor =
-                Color.Black;
-
-            mainMenu.BackColor =
-                Color.White;
-
-            mainMenu.ForeColor =
-                Color.Black;
-        }
+        mainMenu.ForeColor =
+            TextColor;
     }
 
     // =====================================================
@@ -463,18 +486,8 @@ public class Form1 : Form
 
         selectedApplications.Clear();
 
-        Color backgroundColor =
-            config.DarkMode
-                ? Color.FromArgb(32, 32, 32)
-                : Color.WhiteSmoke;
-
-        Color textColor =
-            config.DarkMode
-                ? Color.White
-                : Color.Black;
-
         contentPanel.BackColor =
-            backgroundColor;
+            BackgroundColor;
 
         // =============================================
         // FOOTER
@@ -509,13 +522,7 @@ public class Form1 : Form
                 : Color.Gray;
 
         footerLabel.BackColor =
-            backgroundColor;
-
-        footerLabel.Font =
-            new Font(
-                "Segoe UI",
-                8
-            );
+            BackgroundColor;
 
         // =============================================
         // TITLE
@@ -544,10 +551,10 @@ public class Form1 : Form
             );
 
         titleLabel.ForeColor =
-            textColor;
+            TextColor;
 
         titleLabel.BackColor =
-            backgroundColor;
+            BackgroundColor;
 
         // =============================================
         // TOOLBAR
@@ -563,7 +570,7 @@ public class Form1 : Form
             65;
 
         toolbar.BackColor =
-            backgroundColor;
+            BackgroundColor;
 
         Button addButton =
             CreateToolbarButton(
@@ -573,33 +580,55 @@ public class Form1 : Form
         addButton.Left = 15;
         addButton.Top = 12;
 
-        Button deleteButton =
+        selectButton =
+            CreateToolbarButton(
+                "☑ CHỌN"
+            );
+
+        selectButton.Left = 140;
+        selectButton.Top = 12;
+
+        deleteButton =
             CreateToolbarButton(
                 "🗑 XÓA"
             );
 
-        deleteButton.Left = 140;
+        deleteButton.Left = 265;
         deleteButton.Top = 12;
+
+        deleteButton.Visible =
+            false;
+
+        cancelSelectButton =
+            CreateToolbarButton(
+                "✖ HỦY"
+            );
+
+        cancelSelectButton.Left = 390;
+        cancelSelectButton.Top = 12;
+
+        cancelSelectButton.Visible =
+            false;
 
         Button refreshButton =
             CreateToolbarButton(
                 "🔄 LÀM MỚI"
             );
 
-        refreshButton.Left = 265;
+        refreshButton.Left = 515;
         refreshButton.Top = 12;
 
         searchBox =
             new TextBox();
 
         searchBox.Width =
-            280;
+            250;
 
         searchBox.Height =
             32;
 
         searchBox.Left =
-            410;
+            650;
 
         searchBox.Top =
             17;
@@ -610,11 +639,12 @@ public class Form1 : Form
                 10
             );
 
-        searchBox.Text =
-            "";
-
         searchBox.PlaceholderText =
             "🔍 Tìm kiếm ứng dụng...";
+
+        ApplyTextBoxTheme(
+            searchBox
+        );
 
         searchBox.TextChanged +=
             delegate
@@ -628,10 +658,22 @@ public class Form1 : Form
                 AddApplication();
             };
 
+        selectButton.Click +=
+            delegate
+            {
+                ToggleSelectionMode();
+            };
+
         deleteButton.Click +=
             delegate
             {
                 DeleteSelectedApplications();
+            };
+
+        cancelSelectButton.Click +=
+            delegate
+            {
+                ExitSelectionMode();
             };
 
         refreshButton.Click +=
@@ -640,13 +682,32 @@ public class Form1 : Form
                 LoadApplications();
             };
 
-        toolbar.Controls.Add(addButton);
-        toolbar.Controls.Add(deleteButton);
-        toolbar.Controls.Add(refreshButton);
-        toolbar.Controls.Add(searchBox);
+        toolbar.Controls.Add(
+            addButton
+        );
+
+        toolbar.Controls.Add(
+            selectButton
+        );
+
+        toolbar.Controls.Add(
+            deleteButton
+        );
+
+        toolbar.Controls.Add(
+            cancelSelectButton
+        );
+
+        toolbar.Controls.Add(
+            refreshButton
+        );
+
+        toolbar.Controls.Add(
+            searchBox
+        );
 
         // =============================================
-        // MAIN SCROLL
+        // SCROLL PANEL
         // =============================================
 
         Panel scrollPanel =
@@ -659,109 +720,16 @@ public class Form1 : Form
             true;
 
         scrollPanel.BackColor =
-            backgroundColor;
-
-        // =============================================
-        // ALL APPLICATIONS TITLE
-        // =============================================
-
-        allAppsTitle =
-            new Label();
-
-        allAppsTitle.Text =
-            "📦 TẤT CẢ ỨNG DỤNG";
-
-        allAppsTitle.Height =
-            45;
-
-        allAppsTitle.Dock =
-            DockStyle.Top;
-
-        allAppsTitle.Padding =
-            new Padding(
-                25,
-                0,
-                0,
-                0
-            );
-
-        allAppsTitle.TextAlign =
-            ContentAlignment.MiddleLeft;
-
-        allAppsTitle.Font =
-            new Font(
-                "Segoe UI",
-                14,
-                FontStyle.Bold
-            );
-
-        allAppsTitle.ForeColor =
-            textColor;
-
-        allAppsTitle.BackColor =
-            backgroundColor;
-
-        // =============================================
-        // ALL APPLICATIONS PANEL
-        // =============================================
-
-        appPanel =
-            new FlowLayoutPanel();
-
-        appPanel.Dock =
-            DockStyle.Top;
-
-        appPanel.AutoSize =
-            true;
-
-        appPanel.WrapContents =
-            true;
-
-        appPanel.Padding =
-            new Padding(20);
-
-        appPanel.BackColor =
-            backgroundColor;
+            BackgroundColor;
 
         // =============================================
         // FAVORITE TITLE
         // =============================================
 
         favoriteTitle =
-            new Label();
-
-        favoriteTitle.Text =
-            "⭐ ỨNG DỤNG YÊU THÍCH";
-
-        favoriteTitle.Height =
-            45;
-
-        favoriteTitle.Dock =
-            DockStyle.Top;
-
-        favoriteTitle.Padding =
-            new Padding(
-                25,
-                0,
-                0,
-                0
+            CreateSectionTitle(
+                "⭐ ỨNG DỤNG YÊU THÍCH"
             );
-
-        favoriteTitle.TextAlign =
-            ContentAlignment.MiddleLeft;
-
-        favoriteTitle.Font =
-            new Font(
-                "Segoe UI",
-                14,
-                FontStyle.Bold
-            );
-
-        favoriteTitle.ForeColor =
-            textColor;
-
-        favoriteTitle.BackColor =
-            backgroundColor;
 
         // =============================================
         // FAVORITE PANEL
@@ -783,7 +751,38 @@ public class Form1 : Form
             new Padding(20);
 
         favoritePanel.BackColor =
-            backgroundColor;
+            BackgroundColor;
+
+        // =============================================
+        // ALL APPS TITLE
+        // =============================================
+
+        allAppsTitle =
+            CreateSectionTitle(
+                "📦 TẤT CẢ ỨNG DỤNG"
+            );
+
+        // =============================================
+        // APPLICATION PANEL
+        // =============================================
+
+        appPanel =
+            new FlowLayoutPanel();
+
+        appPanel.Dock =
+            DockStyle.Top;
+
+        appPanel.AutoSize =
+            true;
+
+        appPanel.WrapContents =
+            true;
+
+        appPanel.Padding =
+            new Padding(20);
+
+        appPanel.BackColor =
+            BackgroundColor;
 
         // =============================================
         // EMPTY
@@ -818,25 +817,100 @@ public class Form1 : Form
                 : Color.Gray;
 
         emptyLabel.BackColor =
-            backgroundColor;
+            BackgroundColor;
 
-        // Dock order
-        scrollPanel.Controls.Add(appPanel);
-        scrollPanel.Controls.Add(allAppsTitle);
-        scrollPanel.Controls.Add(favoritePanel);
-        scrollPanel.Controls.Add(favoriteTitle);
-        scrollPanel.Controls.Add(emptyLabel);
+        // =============================================
+        // ADD CONTROLS
+        // =============================================
 
-        contentPanel.Controls.Add(scrollPanel);
-        contentPanel.Controls.Add(toolbar);
-        contentPanel.Controls.Add(titleLabel);
-        contentPanel.Controls.Add(footerLabel);
+        scrollPanel.Controls.Add(
+            appPanel
+        );
+
+        scrollPanel.Controls.Add(
+            allAppsTitle
+        );
+
+        scrollPanel.Controls.Add(
+            favoritePanel
+        );
+
+        scrollPanel.Controls.Add(
+            favoriteTitle
+        );
+
+        scrollPanel.Controls.Add(
+            emptyLabel
+        );
+
+        contentPanel.Controls.Add(
+            scrollPanel
+        );
+
+        contentPanel.Controls.Add(
+            toolbar
+        );
+
+        contentPanel.Controls.Add(
+            titleLabel
+        );
+
+        contentPanel.Controls.Add(
+            footerLabel
+        );
 
         LoadApplications();
     }
 
     // =====================================================
-    // CREATE TOOLBAR BUTTON
+    // SECTION TITLE
+    // =====================================================
+
+    private Label CreateSectionTitle(
+        string text
+    )
+    {
+        Label label =
+            new Label();
+
+        label.Text =
+            text;
+
+        label.Height =
+            45;
+
+        label.Dock =
+            DockStyle.Top;
+
+        label.Padding =
+            new Padding(
+                25,
+                0,
+                0,
+                0
+            );
+
+        label.TextAlign =
+            ContentAlignment.MiddleLeft;
+
+        label.Font =
+            new Font(
+                "Segoe UI",
+                14,
+                FontStyle.Bold
+            );
+
+        label.ForeColor =
+            TextColor;
+
+        label.BackColor =
+            BackgroundColor;
+
+        return label;
+    }
+
+    // =====================================================
+    // TOOLBAR BUTTON
     // =====================================================
 
     private Button CreateToolbarButton(
@@ -862,7 +936,155 @@ public class Form1 : Form
                 FontStyle.Bold
             );
 
+        ApplyButtonTheme(
+            button
+        );
+
         return button;
+    }
+
+    // =====================================================
+    // BUTTON THEME
+    // =====================================================
+
+    private void ApplyButtonTheme(
+        Button button
+    )
+    {
+        button.FlatStyle =
+            FlatStyle.Flat;
+
+        button.FlatAppearance.BorderSize =
+            1;
+
+        if (
+            config.DarkMode
+        )
+        {
+            button.BackColor =
+                Color.FromArgb(
+                    60,
+                    60,
+                    60
+                );
+
+            button.ForeColor =
+                Color.White;
+
+            button.FlatAppearance.BorderColor =
+                Color.FromArgb(
+                    90,
+                    90,
+                    90
+                );
+        }
+        else
+        {
+            button.BackColor =
+                Color.White;
+
+            button.ForeColor =
+                Color.Black;
+
+            button.FlatAppearance.BorderColor =
+                Color.LightGray;
+        }
+    }
+
+    // =====================================================
+    // TEXTBOX THEME
+    // =====================================================
+
+    private void ApplyTextBoxTheme(
+        TextBox textBox
+    )
+    {
+        if (
+            config.DarkMode
+        )
+        {
+            textBox.BackColor =
+                Color.FromArgb(
+                    50,
+                    50,
+                    50
+                );
+
+            textBox.ForeColor =
+                Color.White;
+        }
+        else
+        {
+            textBox.BackColor =
+                Color.White;
+
+            textBox.ForeColor =
+                Color.Black;
+        }
+    }
+
+    // =====================================================
+    // SELECTION MODE
+    // =====================================================
+
+    private void ToggleSelectionMode()
+    {
+        selectionMode =
+            !selectionMode;
+
+        if (
+            selectionMode
+        )
+        {
+            selectButton.Visible =
+                false;
+
+            deleteButton.Visible =
+                true;
+
+            cancelSelectButton.Visible =
+                true;
+        }
+        else
+        {
+            ExitSelectionMode();
+        }
+
+        LoadApplications();
+    }
+
+    private void ExitSelectionMode()
+    {
+        selectionMode =
+            false;
+
+        selectedApplications.Clear();
+
+        if (
+            selectButton != null
+        )
+        {
+            selectButton.Visible =
+                true;
+        }
+
+        if (
+            deleteButton != null
+        )
+        {
+            deleteButton.Visible =
+                false;
+        }
+
+        if (
+            cancelSelectButton != null
+        )
+        {
+            cancelSelectButton.Visible =
+                false;
+        }
+
+        LoadApplications();
     }
 
     // =====================================================
@@ -880,30 +1102,70 @@ public class Form1 : Form
         }
 
         appPanel.Controls.Clear();
+
         favoritePanel.Controls.Clear();
 
-        selectedApplications.Clear();
+        if (
+            !selectionMode
+        )
+        {
+            selectedApplications.Clear();
+        }
 
         Directory.CreateDirectory(
             appToolPath
         );
 
-        string[] files =
+        string[] allFiles =
             Directory.GetFiles(
                 appToolPath,
                 "*.exe"
             )
             .OrderBy(
                 file =>
-                Path.GetFileName(file)
+                Path.GetFileName(
+                    file
+                )
             )
             .ToArray();
 
+        // =============================================
+        // CLEAN INVALID FAVORITES
+        // =============================================
+
+        config.FavoriteApplications =
+            config.FavoriteApplications
+            .Where(
+                favorite =>
+                allFiles.Any(
+                    file =>
+                    string.Equals(
+                        Path.GetFileName(
+                            file
+                        ),
+                        favorite,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            )
+            .Distinct(
+                StringComparer.OrdinalIgnoreCase
+            )
+            .ToList();
+
+        SaveConfig();
+
+        // =============================================
+        // SEARCH
+        // =============================================
+
         string search =
             searchBox != null
-                ? searchBox.Text
-                    .Trim()
+                ? searchBox.Text.Trim()
                 : "";
+
+        string[] files =
+            allFiles;
 
         if (
             !string.IsNullOrWhiteSpace(
@@ -912,7 +1174,7 @@ public class Form1 : Form
         )
         {
             files =
-                files
+                allFiles
                 .Where(
                     file =>
                     Path
@@ -927,31 +1189,8 @@ public class Form1 : Form
                 .ToArray();
         }
 
-        // Xóa favorite không còn tồn tại
-        config.FavoriteApplications =
-            config.FavoriteApplications
-            .Where(
-                favorite =>
-                File.Exists(
-                    Path.Combine(
-                        appToolPath,
-                        favorite
-                    )
-                )
-            )
-            .Distinct(
-                StringComparer.OrdinalIgnoreCase
-            )
-            .ToList();
-
-        SaveConfig();
-
-        // =============================================
-        // EMPTY
-        // =============================================
-
         emptyLabel.Visible =
-            files.Length == 0;
+            allFiles.Length == 0;
 
         // =============================================
         // FAVORITES
@@ -963,7 +1202,9 @@ public class Form1 : Form
                 file =>
                 config.FavoriteApplications
                 .Contains(
-                    Path.GetFileName(file),
+                    Path.GetFileName(
+                        file
+                    ),
                     StringComparer.OrdinalIgnoreCase
                 )
             )
@@ -976,8 +1217,7 @@ public class Form1 : Form
         {
             favoritePanel.Controls.Add(
                 CreateApplicationItem(
-                    file,
-                    true
+                    file
                 )
             );
         }
@@ -999,14 +1239,15 @@ public class Form1 : Form
         {
             appPanel.Controls.Add(
                 CreateApplicationItem(
-                    file,
-                    false
+                    file
                 )
             );
         }
 
         allAppsTitle.Visible =
             files.Length > 0;
+
+        UpdateApplicationLayout();
     }
 
     // =====================================================
@@ -1014,8 +1255,7 @@ public class Form1 : Form
     // =====================================================
 
     private Control CreateApplicationItem(
-        string file,
-        bool isFavoriteSection
+        string file
     )
     {
         Panel borderPanel =
@@ -1025,18 +1265,20 @@ public class Form1 : Form
             170;
 
         borderPanel.Height =
-            210;
+            215;
 
         borderPanel.Margin =
-            new Padding(10);
+            new Padding(
+                10
+            );
 
         borderPanel.Padding =
-            new Padding(1);
+            new Padding(
+                1
+            );
 
         borderPanel.BackColor =
-            config.DarkMode
-                ? Color.FromArgb(80, 80, 80)
-                : Color.LightGray;
+            BorderColor;
 
         Panel panel =
             new Panel();
@@ -1045,22 +1287,39 @@ public class Form1 : Form
             DockStyle.Fill;
 
         panel.BackColor =
-            config.DarkMode
-                ? Color.FromArgb(48, 48, 48)
-                : Color.White;
+            CardColor;
+
+        string fileName =
+            Path.GetFileName(
+                file
+            );
 
         // =============================================
-        // SELECT
+        // SELECT BOX
         // =============================================
 
         CheckBox selectBox =
             new CheckBox();
 
         selectBox.Size =
-            new Size(25, 25);
+            new Size(
+                25,
+                25
+            );
 
         selectBox.Location =
-            new Point(8, 8);
+            new Point(
+                8,
+                8
+            );
+
+        selectBox.Visible =
+            selectionMode;
+
+        selectBox.Checked =
+            selectedApplications.ContainsKey(
+                file
+            );
 
         // =============================================
         // FAVORITE BUTTON
@@ -1076,21 +1335,21 @@ public class Form1 : Form
             0;
 
         favoriteButton.Width =
-            35;
+            38;
 
         favoriteButton.Height =
-            30;
+            32;
 
         favoriteButton.Top =
-            5;
+            3;
+
+        favoriteButton.Anchor =
+            AnchorStyles.Top |
+            AnchorStyles.Right;
 
         favoriteButton.Left =
-            128;
-
-        string fileName =
-            Path.GetFileName(
-                file
-            );
+            borderPanel.Width -
+            42;
 
         bool isFavorite =
             config.FavoriteApplications
@@ -1110,6 +1369,12 @@ public class Form1 : Form
                 14
             );
 
+        favoriteButton.BackColor =
+            CardColor;
+
+        favoriteButton.ForeColor =
+            TextColor;
+
         favoriteButton.Click +=
             delegate
             {
@@ -1126,7 +1391,10 @@ public class Form1 : Form
             new PictureBox();
 
         iconBox.Size =
-            new Size(64, 64);
+            new Size(
+                64,
+                64
+            );
 
         iconBox.SizeMode =
             PictureBoxSizeMode.Zoom;
@@ -1136,7 +1404,7 @@ public class Form1 : Form
 
         iconBox.Left =
             (
-                panel.Width -
+                borderPanel.Width -
                 iconBox.Width
             ) / 2;
 
@@ -1147,7 +1415,9 @@ public class Form1 : Form
                     file
                 );
 
-            if (icon != null)
+            if (
+                icon != null
+            )
             {
                 iconBox.Image =
                     icon.ToBitmap();
@@ -1155,41 +1425,41 @@ public class Form1 : Form
             else
             {
                 iconBox.Image =
-                    SystemIcons.Application.ToBitmap();
+                    SystemIcons.Application
+                    .ToBitmap();
             }
         }
         catch
         {
             iconBox.Image =
-                SystemIcons.Application.ToBitmap();
+                SystemIcons.Application
+                .ToBitmap();
         }
 
         // =============================================
-        // NAME
+        // APP NAME
         // =============================================
-
-        string appName =
-            Path.GetFileNameWithoutExtension(
-                file
-            );
 
         Label nameLabel =
             new Label();
 
         nameLabel.Text =
-            appName;
+            Path.GetFileNameWithoutExtension(
+                file
+            );
 
         nameLabel.Width =
-            150;
+            borderPanel.Width -
+            20;
 
         nameLabel.Height =
-            38;
+            42;
 
         nameLabel.Left =
             10;
 
         nameLabel.Top =
-            112;
+            110;
 
         nameLabel.TextAlign =
             ContentAlignment.MiddleCenter;
@@ -1202,9 +1472,10 @@ public class Form1 : Form
             );
 
         nameLabel.ForeColor =
-            config.DarkMode
-                ? Color.White
-                : Color.Black;
+            TextColor;
+
+        nameLabel.BackColor =
+            CardColor;
 
         // =============================================
         // RUN BUTTON
@@ -1223,7 +1494,10 @@ public class Form1 : Form
             32;
 
         runButton.Left =
-            25;
+            (
+                borderPanel.Width -
+                runButton.Width
+            ) / 2;
 
         runButton.Top =
             165;
@@ -1234,6 +1508,10 @@ public class Form1 : Form
                 9,
                 FontStyle.Bold
             );
+
+        ApplyButtonTheme(
+            runButton
+        );
 
         runButton.Click +=
             delegate
@@ -1263,18 +1541,80 @@ public class Form1 : Form
                 else
                 {
                     borderPanel.BackColor =
-                        config.DarkMode
-                            ? Color.FromArgb(
-                                80,
-                                80,
-                                80
-                            )
-                            : Color.LightGray;
+                        BorderColor;
 
                     selectedApplications.Remove(
                         file
                     );
                 }
+            };
+
+        // =============================================
+        // CLICK CARD
+        // =============================================
+
+        Action cardClick =
+            delegate
+            {
+                if (
+                    selectionMode
+                )
+                {
+                    selectBox.Checked =
+                        !selectBox.Checked;
+                }
+                else
+                {
+                    RunApplication(
+                        file
+                    );
+                }
+            };
+
+        panel.Click +=
+            delegate
+            {
+                cardClick();
+            };
+
+        iconBox.Click +=
+            delegate
+            {
+                cardClick();
+            };
+
+        nameLabel.Click +=
+            delegate
+            {
+                cardClick();
+            };
+
+        // =============================================
+        // RESIZE CARD
+        // =============================================
+
+        borderPanel.Resize +=
+            delegate
+            {
+                favoriteButton.Left =
+                    borderPanel.Width -
+                    42;
+
+                iconBox.Left =
+                    (
+                        borderPanel.Width -
+                        iconBox.Width
+                    ) / 2;
+
+                nameLabel.Width =
+                    borderPanel.Width -
+                    20;
+
+                runButton.Left =
+                    (
+                        borderPanel.Width -
+                        runButton.Width
+                    ) / 2;
             };
 
         panel.Controls.Add(
@@ -1319,7 +1659,9 @@ public class Form1 : Form
                 StringComparer.OrdinalIgnoreCase
             );
 
-        if (exists)
+        if (
+            exists
+        )
         {
             config.FavoriteApplications.RemoveAll(
                 item =>
@@ -1340,6 +1682,87 @@ public class Form1 : Form
         SaveConfig();
 
         LoadApplications();
+    }
+
+    // =====================================================
+    // RESPONSIVE LAYOUT
+    // =====================================================
+
+    private void UpdateApplicationLayout()
+    {
+        UpdatePanelLayout(
+            appPanel
+        );
+
+        UpdatePanelLayout(
+            favoritePanel
+        );
+    }
+
+    private void UpdatePanelLayout(
+        FlowLayoutPanel panel
+    )
+    {
+        if (
+            panel == null ||
+            panel.Controls.Count == 0
+        )
+        {
+            return;
+        }
+
+        int availableWidth =
+            panel.ClientSize.Width -
+            panel.Padding.Left -
+            panel.Padding.Right;
+
+        if (
+            availableWidth <= 0
+        )
+        {
+            return;
+        }
+
+        int minimumCardWidth =
+            150;
+
+        int margin =
+            20;
+
+        int columns =
+            Math.Max(
+                1,
+                availableWidth /
+                (
+                    minimumCardWidth +
+                    margin
+                )
+            );
+
+        int newCardWidth =
+            (
+                availableWidth /
+                columns
+            ) -
+            margin;
+
+        newCardWidth =
+            Math.Max(
+                150,
+                Math.Min(
+                    230,
+                    newCardWidth
+                )
+            );
+
+        foreach (
+            Control control
+            in panel.Controls
+        )
+        {
+            control.Width =
+                newCardWidth;
+        }
     }
 
     // =====================================================
@@ -1435,9 +1858,6 @@ public class Form1 : Form
         string[] files
     )
     {
-        int copied =
-            0;
-
         foreach (
             string file
             in files
@@ -1495,8 +1915,6 @@ public class Form1 : Form
                     destination,
                     true
                 );
-
-                copied++;
             }
             catch (
                 Exception ex
@@ -1507,13 +1925,6 @@ public class Form1 : Form
                     "Lỗi sao chép"
                 );
             }
-        }
-
-        if (
-            copied > 0
-        )
-        {
-            LoadApplications();
         }
     }
 
@@ -1604,9 +2015,7 @@ public class Form1 : Form
 
         SaveConfig();
 
-        selectedApplications.Clear();
-
-        LoadApplications();
+        ExitSelectionMode();
     }
 
     // =====================================================
@@ -1735,6 +2144,12 @@ public class Form1 : Form
         aboutForm.MinimizeBox =
             false;
 
+        aboutForm.BackColor =
+            BackgroundColor;
+
+        aboutForm.ForeColor =
+            TextColor;
+
         Label info =
             new Label();
 
@@ -1764,6 +2179,12 @@ public class Form1 : Form
                 11
             );
 
+        info.BackColor =
+            BackgroundColor;
+
+        info.ForeColor =
+            TextColor;
+
         Button updateButton =
             new Button();
 
@@ -1781,6 +2202,10 @@ public class Form1 : Form
 
         updateButton.Left =
             100;
+
+        ApplyButtonTheme(
+            updateButton
+        );
 
         updateButton.Click +=
             async delegate
@@ -1997,6 +2422,9 @@ public class Form1 : Form
         downloadForm.ControlBox =
             false;
 
+        downloadForm.BackColor =
+            BackgroundColor;
+
         Label statusLabel =
             new Label();
 
@@ -2011,6 +2439,12 @@ public class Form1 : Form
 
         statusLabel.TextAlign =
             ContentAlignment.MiddleCenter;
+
+        statusLabel.ForeColor =
+            TextColor;
+
+        statusLabel.BackColor =
+            BackgroundColor;
 
         ProgressBar progressBar =
             new ProgressBar();
@@ -2041,6 +2475,12 @@ public class Form1 : Form
 
         percentLabel.TextAlign =
             ContentAlignment.MiddleCenter;
+
+        percentLabel.ForeColor =
+            TextColor;
+
+        percentLabel.BackColor =
+            BackgroundColor;
 
         downloadForm.Controls.Add(
             statusLabel
@@ -2408,5 +2848,6 @@ public class Form1 : Form
         }
     }
 }
+
 
 }
