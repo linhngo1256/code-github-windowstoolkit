@@ -17,8 +17,7 @@ public class Form1 : Form
 // VERSION
 // =====================================================
 
-
-    private const string CURRENT_VERSION = "2.5.0";
+    private const string CURRENT_VERSION = "2.5.1";
 
     // =====================================================
     // OTA UPDATE
